@@ -1,30 +1,5 @@
 require PolyHok
 
-defmodule BMP do
-  @on_load :load_nifs
-  def load_nifs do
-    :erlang.load_nif(~c"./priv/bmp_nifs", 0)
-  end
-
-  def gen_bmp_int_nif(_string, _dim, _mat) do
-    raise "gen_bmp_nif not implemented"
-  end
-
-  def gen_bmp_float_nif(_string, _dim, _mat) do
-    raise "gen_bmp_nif not implemented"
-  end
-
-  def gen_bmp_int(string, dim, %Nx.Tensor{data: data, type: _type, shape: _shape, names: _name}) do
-    %Nx.BinaryBackend{state: array} = data
-    gen_bmp_int_nif(string, dim, array)
-  end
-
-  def gen_bmp_float(string, dim, %Nx.Tensor{data: data, type: _type, shape: _shape, names: _name}) do
-    %Nx.BinaryBackend{state: array} = data
-    gen_bmp_float_nif(string, dim, array)
-  end
-end
-
 PolyHok.defmodule Julia do
   defd julia(x, y, dim) do
     scale = 0.1
@@ -71,12 +46,20 @@ PolyHok.defmodule Julia do
   end
 
   def mapgen2D_step_xy_1para_noret(result_gpu, arg1, size, f) do
-    PolyHok.spawn(&Julia.mapgen2D_xy_1para_noret_ker/4, {size, size, 1}, {1, 1, 1}, [
-      result_gpu,
-      arg1,
-      size,
-      f
-    ])
+    block_size = 16
+    grid_size = div(size + block_size - 1, block_size)
+
+    PolyHok.spawn(
+      &Julia.mapgen2D_xy_1para_noret_ker/4,
+      {grid_size, grid_size, 1},
+      {block_size, block_size, 1},
+      [
+        result_gpu,
+        arg1,
+        size,
+        f
+      ]
+    )
 
     result_gpu
   end
@@ -89,9 +72,9 @@ dim = m
 
 prev = System.monotonic_time()
 
-result_gpu = PolyHok.new_gnx(dim * dim, 4, {:s, 32})
+result_gpu = PolyHok.new_gnx({dim * dim, 4}, {:s, 32})
 
-_image =
+image =
   result_gpu
   |> Julia.mapgen2D_step_xy_1para_noret(dim, dim, &Julia.julia_function/4)
   |> PolyHok.get_gnx()
@@ -100,4 +83,4 @@ next = System.monotonic_time()
 
 IO.puts("PolyHok\t#{dim}\t#{System.convert_time_unit(next - prev, :native, :millisecond)}")
 
-# BMP.gen_bmp_int(~c"juliaske.bmp",dim,image)
+Bmp.gen_bmp_int("julia.bmp", dim, image)
