@@ -5,7 +5,7 @@ defmodule PolyHokBenchmarks.MixProject do
     [
       app: :poly_hok_benchmarks,
       version: "0.1.0",
-      elixir: "~> 1.19",
+      elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
       deps: deps()
     ]
@@ -21,8 +21,11 @@ defmodule PolyHokBenchmarks.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      # {:dep_from_hexpm, "~> 0.3.0"},
-      # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
+      {:nx, "~> 0.9"},
+      {:poly_hok, git: "https://github.com/lups-ufpel/poly_hok.git", sparse: "poly_hok"},
+      {:opencl_backend, git: "https://github.com/lups-ufpel/poly_hok.git", sparse: "backends/opencl_backend"}
+      # -- Replace the line above with the following line to use the CUDA backend instead of the OpenCL backend --
+      # {:cuda_backend, git: "https://github.com/lups-ufpel/poly_hok.git", sparse: "backends/cuda_backend"}
     ]
   end
 end
