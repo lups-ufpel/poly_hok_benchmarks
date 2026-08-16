@@ -22,6 +22,7 @@ defmodule PolyHokBenchmarks.MixProject do
   defp deps do
     [
       {:nx, "~> 0.9"},
+      {:bmp, git: "https://github.com/lups-ufpel/poly_hok.git", sparse: "tools/bmp"},
       {:poly_hok, git: "https://github.com/lups-ufpel/poly_hok.git", sparse: "poly_hok"},
       {:opencl_backend, git: "https://github.com/lups-ufpel/poly_hok.git", sparse: "backends/opencl_backend"}
       # -- Replace the line above with the following line to use the CUDA backend instead of the OpenCL backend --
