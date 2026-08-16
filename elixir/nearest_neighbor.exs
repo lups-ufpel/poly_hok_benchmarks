@@ -94,7 +94,8 @@ defmodule DataSet do
 end
 
 PolyHok.defmodule NN do
-  include(CAS_Poly)
+  include(OpenCL_CAS_Poly)
+
   def euclid_seq(l, lat, lng), do: euclid_seq_(l, lat, lng, [])
 
   def euclid_seq_([m_lat, m_lng | array], lat, lng, data) do
@@ -174,7 +175,7 @@ PolyHok.defmodule NN do
   def map_step_2para_1resp(d_array, step, par1, par2, size, f) do
     type = PolyHok.get_type_gnx(d_array)
 
-    distances_device = PolyHok.new_gnx(1, size, type)
+    distances_device = PolyHok.new_gnx({1, size}, type)
 
     PolyHok.spawn(&NN.map_step_2para_1resp_kernel/7, {size, 1, 1}, {1, 1, 1}, [
       d_array,
