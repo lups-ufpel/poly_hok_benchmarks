@@ -1,30 +1,5 @@
 require PolyHok
 
-defmodule BMP do
-  @on_load :load_nifs
-  def load_nifs do
-    :erlang.load_nif(~c"./priv/bmp_nifs", 0)
-  end
-
-  def gen_bmp_int_nif(_string, _dim, _mat) do
-    raise "gen_bmp_nif not implemented"
-  end
-
-  def gen_bmp_float_nif(_string, _dim, _mat) do
-    raise "gen_bmp_nif not implemented"
-  end
-
-  def gen_bmp_int(string, dim, %Nx.Tensor{data: data, type: _type, shape: _shape, names: _name}) do
-    %Nx.BinaryBackend{state: array} = data
-    gen_bmp_int_nif(string, dim, array)
-  end
-
-  def gen_bmp_float(string, dim, %Nx.Tensor{data: data, type: _type, shape: _shape, names: _name}) do
-    %Nx.BinaryBackend{state: array} = data
-    gen_bmp_float_nif(string, dim, array)
-  end
-end
-
 PolyHok.defmodule RayTracer do
   defd raytracing(image, width, spheres, x, y) do
     ox = 0.0
@@ -100,9 +75,9 @@ defmodule Main do
     :rand.uniform() * x
   end
 
-  def sphereMaker2(0, _dim), do: []
+  def sphereMaker(0, _dim), do: []
 
-  def sphereMaker2(n, dim) do
+  def sphereMaker(n, dim) do
     [
       Main.rnd(1),
       Main.rnd(1),
@@ -111,43 +86,8 @@ defmodule Main do
       Main.rnd(dim) - trunc(dim / 2),
       Main.rnd(dim) - trunc(dim / 2),
       Main.rnd(dim) - trunc(dim / 2)
-      | sphereMaker2(n - 1, dim)
+      | sphereMaker(n - 1, dim)
     ]
-  end
-
-  def spherePrinter([]) do
-    File.write!("spheregpu.txt", "done\n", [:append])
-  end
-
-  def spherePrinter([r, g, b, _radius, _x, _y, _z | list]) do
-    File.write!("spheregpu.txt", "\t r: #{r}", [:append])
-    File.write!("spheregpu.txt", "\t g: #{g}", [:append])
-    File.write!("spheregpu.txt", "\t b: #{b}", [:append])
-    File.write!("spheregpu.txt", "\n", [:append])
-    spherePrinter(list)
-  end
-
-  def sphereMaker(spheres, max, max) do
-    max = max - 1
-
-    Matrex.set(spheres, 1, max * 7 + 1, Main.rnd(1))
-    |> Matrex.set(1, max * 7 + 2, Main.rnd(1))
-    |> Matrex.set(1, max * 7 + 3, Main.rnd(1))
-    |> Matrex.set(1, max * 7 + 4, Main.rnd(20) + 5)
-    |> Matrex.set(1, max * 7 + 5, Main.rnd(Main.dim()) - Main.dim() / 2)
-    |> Matrex.set(1, max * 7 + 6, Main.rnd(Main.dim()) - Main.dim() / 2)
-    |> Matrex.set(1, max * 7 + 7, Main.rnd(256) - 128)
-  end
-
-  def sphereMaker(spheres, n, max) do
-    Matrex.set(spheres, 1, n * 7 + 1, Main.rnd(1))
-    |> Matrex.set(1, (n - 1) * 7 + 2, Main.rnd(1))
-    |> Matrex.set(1, (n - 1) * 7 + 3, Main.rnd(1))
-    |> Matrex.set(1, (n - 1) * 7 + 4, Main.rnd(20) + 5)
-    |> Matrex.set(1, (n - 1) * 7 + 5, Main.rnd(Main.dim()) - Main.dim() / 2)
-    |> Matrex.set(1, (n - 1) * 7 + 6, Main.rnd(Main.dim()) - Main.dim() / 2)
-    |> Matrex.set(1, (n - 1) * 7 + 7, Main.rnd(256) - 128)
-    |> sphereMaker(n + 1, max)
   end
 
   def dim do
@@ -160,7 +100,7 @@ defmodule Main do
   end
 
   def main do
-    sphereList = Nx.tensor([sphereMaker2(Main.spheres(), Main.dim())], type: {:f, 32})
+    sphereList = Nx.tensor([sphereMaker(Main.spheres(), Main.dim())], type: {:f, 32})
 
     width = Main.dim()
     height = width
@@ -168,7 +108,7 @@ defmodule Main do
     prev = System.monotonic_time()
 
     ref_sphere = PolyHok.new_gnx(sphereList)
-    ref_image = PolyHok.new_gnx(1, width * height * 4, {:s, 32})
+    ref_image = PolyHok.new_gnx({1, width * height * 4}, {:s, 32})
 
     RayTracer.mapxy_2D_para_no_resp(
       ref_image,
@@ -179,15 +119,13 @@ defmodule Main do
       &RayTracer.raytracing/5
     )
 
-    _image = PolyHok.get_gnx(ref_image)
+    image = PolyHok.get_gnx(ref_image)
 
     next = System.monotonic_time()
 
-    IO.puts(
-      "PolyHok\t#{width}\t#{System.convert_time_unit(next - prev, :native, :millisecond)} "
-    )
+    IO.puts("PolyHok\t#{width}\t#{System.convert_time_unit(next - prev, :native, :millisecond)} ")
 
-    # BMP.gen_bmp_int(~c"ray.bmp",width,image)
+    Bmp.gen_bmp_int("raytracer.bmp", width, image)
   end
 end
 
