@@ -26,7 +26,7 @@ PolyHok.defmodule MM do
   end
 
   def comp2xy2D1p(arr1, arr2, par, size1, size2, f) do
-    result_gpu = PolyHok.new_gnx(size1, size2, PolyHok.get_type(arr1))
+    result_gpu = PolyHok.new_gnx({size1, size2}, PolyHok.get_type(arr1))
     arr1_gpu = PolyHok.new_gnx(arr1)
     arr2_gpu = PolyHok.new_gnx(arr2)
 
@@ -78,12 +78,12 @@ size =
 
 m = String.to_integer(size)
 
-mat1 = PolyHok.new_nx_from_function(m, m, {:f, 32}, fn -> :rand.uniform(1000) end)
-mat2 = PolyHok.new_nx_from_function(m, m, {:f, 32}, fn -> :rand.uniform(1000) end)
+mat1 = PolyHok.new_nx_from_function(m, m, {:f, 32}, fn -> :rand.uniform(100) end)
+mat2 = PolyHok.new_nx_from_function(m, m, {:f, 32}, fn -> :rand.uniform(100) end)
 
 timing_start = System.monotonic_time()
 
-_result =
+result =
   PolyHok.gpufor x <- 0..m, y <- 0..m, mat1, mat2, m do
     # Fix: this must start with 0.0 to be identified as float, otherwise results are truncated
     sum = 0.0
@@ -101,3 +101,5 @@ timing_end = System.monotonic_time()
 time = System.convert_time_unit(timing_end - timing_start, :native, :millisecond)
 
 IO.puts("PolyHok\t#{m}\t#{time}")
+
+CheckMM.check_spots(5, m, mat1, mat2, result)
