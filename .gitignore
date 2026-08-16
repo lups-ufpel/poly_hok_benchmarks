@@ -25,6 +25,8 @@ erl_crash.dump
 # Ignore package tarball (built via "mix hex.build").
 poly_hok_benchmarks-*.tar
 
+mix.lock
+
 *.bmp
 .o
 .out
